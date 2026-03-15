@@ -9,8 +9,8 @@ const EMBEDDING_MODEL = "gemini-embedding-001";
 const EMBEDDING_DIMENSION = 1536;
 const MATCH_COUNT = 50;
 const TOP_K = 5;
-const GROK_API_URL = "https://api.x.ai/v1/chat/completions";
-const DEFAULT_GROK_MODEL = "grok-2-latest";
+const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
+const DEFAULT_GROQ_MODEL = "llama-3.1-8b-instant";
 
 type ChatMessage = {
   role: "user" | "assistant" | "system";
@@ -53,8 +53,8 @@ function buildSystemPrompt(contextChunks: string[]): string {
 export async function POST(request: Request) {
   try {
     const geminiApiKey = process.env.GEMINI_API_KEY;
-    const xaiApiKey = process.env.XAI_API_KEY;
-    const grokModel = process.env.GROK_MODEL ?? DEFAULT_GROK_MODEL;
+    const groqApiKey = process.env.GROQ_API_KEY;
+    const groqModel = process.env.GROQ_MODEL ?? DEFAULT_GROQ_MODEL;
 
     if (!geminiApiKey) {
       return NextResponse.json(
@@ -63,9 +63,9 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!xaiApiKey) {
+    if (!groqApiKey) {
       return NextResponse.json(
-        { error: "Missing XAI_API_KEY environment variable." },
+        { error: "Missing GROQ_API_KEY environment variable." },
         { status: 500 },
       );
     }
@@ -167,42 +167,42 @@ export async function POST(request: Request) {
 
     if (chatMessages.length === 0) {
       return NextResponse.json(
-        { error: "No valid chat messages to send to Grok." },
+        { error: "No valid chat messages to send to Groq." },
         { status: 400 },
       );
     }
 
-    const grokResponse = await fetch(GROK_API_URL, {
+    const groqResponse = await fetch(GROQ_API_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${xaiApiKey}`,
+        Authorization: `Bearer ${groqApiKey}`,
       },
       body: JSON.stringify({
-        model: grokModel,
+        model: groqModel,
         stream: true,
         temperature: 0.2,
         messages: [{ role: "system", content: systemPrompt }, ...chatMessages],
       }),
     });
 
-    if (!grokResponse.ok) {
-      const errorText = await grokResponse.text();
+    if (!groqResponse.ok) {
+      const errorText = await groqResponse.text();
       return NextResponse.json(
         {
-          error: `Grok API error (${grokResponse.status}): ${errorText}`,
+          error: `Groq API error (${groqResponse.status}): ${errorText}`,
         },
-        { status: grokResponse.status },
+        { status: groqResponse.status },
       );
     }
 
-    if (!grokResponse.body) {
+    if (!groqResponse.body) {
       return NextResponse.json(
-        { error: "Grok response did not include a stream body." },
+        { error: "Groq response did not include a stream body." },
         { status: 500 },
       );
     }
-    const grokBody = grokResponse.body;
+    const groqBody = groqResponse.body;
 
     const encoder = new TextEncoder();
     const decoder = new TextDecoder();
@@ -213,7 +213,7 @@ export async function POST(request: Request) {
         };
 
         try {
-          const reader = grokBody.getReader();
+          const reader = groqBody.getReader();
           let buffer = "";
 
           while (true) {
@@ -253,7 +253,7 @@ export async function POST(request: Request) {
 
           controller.close();
         } catch (streamError) {
-          console.error("Grok stream failed:", streamError);
+          console.error("Groq stream failed:", streamError);
           controller.error(streamError);
         }
       },
