@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import Groq from "groq-sdk";
 import { NextResponse } from "next/server";
 
 import { supabase } from "@/lib/supabase";
@@ -9,7 +10,6 @@ const EMBEDDING_MODEL = "gemini-embedding-001";
 const EMBEDDING_DIMENSION = 1536;
 const MATCH_COUNT = 50;
 const TOP_K = 5;
-const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 const DEFAULT_GROQ_MODEL = "llama-3.1-8b-instant";
 
 type ChatMessage = {
@@ -172,40 +172,15 @@ export async function POST(request: Request) {
       );
     }
 
-    const groqResponse = await fetch(GROQ_API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${groqApiKey}`,
-      },
-      body: JSON.stringify({
-        model: groqModel,
-        stream: true,
-        temperature: 0.2,
-        messages: [{ role: "system", content: systemPrompt }, ...chatMessages],
-      }),
+    const groq = new Groq({ apiKey: groqApiKey });
+    const groqStream = await groq.chat.completions.create({
+      model: groqModel,
+      stream: true,
+      temperature: 0.2,
+      messages: [{ role: "system", content: systemPrompt }, ...chatMessages],
     });
 
-    if (!groqResponse.ok) {
-      const errorText = await groqResponse.text();
-      return NextResponse.json(
-        {
-          error: `Groq API error (${groqResponse.status}): ${errorText}`,
-        },
-        { status: groqResponse.status },
-      );
-    }
-
-    if (!groqResponse.body) {
-      return NextResponse.json(
-        { error: "Groq response did not include a stream body." },
-        { status: 500 },
-      );
-    }
-    const groqBody = groqResponse.body;
-
     const encoder = new TextEncoder();
-    const decoder = new TextDecoder();
     const stream = new ReadableStream({
       async start(controller) {
         const sendTextDelta = (delta: string) => {
@@ -213,44 +188,12 @@ export async function POST(request: Request) {
         };
 
         try {
-          const reader = groqBody.getReader();
-          let buffer = "";
-
-          while (true) {
-            const { value, done } = await reader.read();
-            if (done) {
-              break;
-            }
-
-            buffer += decoder.decode(value, { stream: true });
-            const lines = buffer.split("\n");
-            buffer = lines.pop() ?? "";
-
-            for (const rawLine of lines) {
-              const line = rawLine.trim();
-              if (!line.startsWith("data:")) {
-                continue;
-              }
-
-              const payload = line.slice(5).trim();
-              if (!payload || payload === "[DONE]") {
-                continue;
-              }
-
-              try {
-                const parsed = JSON.parse(payload) as {
-                  choices?: Array<{ delta?: { content?: string } }>;
-                };
-                const textDelta = parsed.choices?.[0]?.delta?.content ?? "";
-                if (textDelta.length > 0) {
-                  sendTextDelta(textDelta);
-                }
-              } catch {
-                // Ignore malformed partial chunks and keep streaming.
-              }
+          for await (const chunk of groqStream) {
+            const textDelta = chunk.choices?.[0]?.delta?.content ?? "";
+            if (textDelta.length > 0) {
+              sendTextDelta(textDelta);
             }
           }
-
           controller.close();
         } catch (streamError) {
           console.error("Groq stream failed:", streamError);
