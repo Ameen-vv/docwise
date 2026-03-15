@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import OpenAI from "openai";
-import pdfParse from "pdf-parse";
+import { GoogleGenAI } from "@google/genai";
+import { CanvasFactory, getData } from "pdf-parse/worker";
+import { PDFParse } from "pdf-parse";
 
 import { supabase } from "@/lib/supabase";
 
@@ -8,12 +9,28 @@ export const runtime = "nodejs";
 
 const CHUNK_SIZE = 1500;
 const CHUNK_OVERLAP = 300;
-const EMBEDDING_MODEL = "text-embedding-ada-002";
+const EMBEDDING_MODEL = "gemini-embedding-001";
+const EMBEDDING_DIMENSION = 1536;
 const EMBEDDING_BATCH_SIZE = 20;
 
 type DocumentInsert = {
   id: string;
 };
+
+async function extractTextFromPdf(fileBuffer: Buffer): Promise<string> {
+  PDFParse.setWorker(getData());
+  const parser = new PDFParse({
+    data: fileBuffer,
+    CanvasFactory,
+  });
+
+  try {
+    const textResult = await parser.getText();
+    return textResult.text ?? "";
+  } finally {
+    await parser.destroy();
+  }
+}
 
 function chunkText(text: string, chunkSize: number, overlap: number): string[] {
   const normalizedText = text.replace(/\s+/g, " ").trim();
@@ -44,10 +61,10 @@ function chunkText(text: string, chunkSize: number, overlap: number): string[] {
 
 export async function POST(request: Request) {
   try {
-    const openaiApiKey = process.env.OPENAI_API_KEY;
-    if (!openaiApiKey) {
+    const geminiApiKey = process.env.GEMINI_API_KEY;
+    if (!geminiApiKey) {
       return NextResponse.json(
-        { error: "Missing OPENAI_API_KEY environment variable." },
+        { error: "Missing GEMINI_API_KEY environment variable." },
         { status: 500 },
       );
     }
@@ -70,8 +87,19 @@ export async function POST(request: Request) {
     }
 
     const fileBuffer = Buffer.from(await uploadedFile.arrayBuffer());
-    const parsedPdf = await pdfParse(fileBuffer);
-    const chunks = chunkText(parsedPdf.text ?? "", CHUNK_SIZE, CHUNK_OVERLAP);
+
+    let extractedText = "";
+    try {
+      extractedText = await extractTextFromPdf(fileBuffer);
+    } catch (pdfError) {
+      console.error("PDF extraction failed:", pdfError);
+      return NextResponse.json(
+        { error: "Failed to read PDF. The file may be invalid or corrupted." },
+        { status: 400 },
+      );
+    }
+
+    const chunks = chunkText(extractedText, CHUNK_SIZE, CHUNK_OVERLAP);
 
     if (chunks.length === 0) {
       return NextResponse.json(
@@ -94,22 +122,36 @@ export async function POST(request: Request) {
       );
     }
 
-    const openai = new OpenAI({ apiKey: openaiApiKey });
+    const gemini = new GoogleGenAI({ apiKey: geminiApiKey });
     const rowsToInsert: { document_id: string; content: string; embedding: number[] }[] =
       [];
 
     for (let index = 0; index < chunks.length; index += EMBEDDING_BATCH_SIZE) {
       const batch = chunks.slice(index, index + EMBEDDING_BATCH_SIZE);
-      const embeddingResponse = await openai.embeddings.create({
+      const embeddingResponse = await gemini.models.embedContent({
         model: EMBEDDING_MODEL,
-        input: batch,
+        contents: batch,
+        config: {
+          outputDimensionality: EMBEDDING_DIMENSION,
+        },
       });
 
-      const batchRows = embeddingResponse.data.map((item, batchIndex) => ({
-        document_id: documentRow.id,
-        content: batch[batchIndex],
-        embedding: item.embedding,
-      }));
+      if (!embeddingResponse.embeddings || embeddingResponse.embeddings.length !== batch.length) {
+        throw new Error("Gemini embeddings response size mismatch.");
+      }
+
+      const batchRows = embeddingResponse.embeddings.map((item, batchIndex) => {
+        const embedding = item.values;
+        if (!embedding || embedding.length !== EMBEDDING_DIMENSION) {
+          throw new Error("Gemini embedding dimension mismatch.");
+        }
+
+        return {
+          document_id: documentRow.id,
+          content: batch[batchIndex],
+          embedding,
+        };
+      });
 
       rowsToInsert.push(...batchRows);
     }
