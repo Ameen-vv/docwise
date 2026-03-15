@@ -9,7 +9,8 @@ const EMBEDDING_MODEL = "gemini-embedding-001";
 const EMBEDDING_DIMENSION = 1536;
 const MATCH_COUNT = 50;
 const TOP_K = 5;
-const CHAT_MODEL = "gemini-2.0-flash";
+const GROK_API_URL = "https://api.x.ai/v1/chat/completions";
+const DEFAULT_GROK_MODEL = "grok-2-latest";
 
 type ChatMessage = {
   role: "user" | "assistant" | "system";
@@ -52,10 +53,19 @@ function buildSystemPrompt(contextChunks: string[]): string {
 export async function POST(request: Request) {
   try {
     const geminiApiKey = process.env.GEMINI_API_KEY;
+    const xaiApiKey = process.env.XAI_API_KEY;
+    const grokModel = process.env.GROK_MODEL ?? DEFAULT_GROK_MODEL;
 
     if (!geminiApiKey) {
       return NextResponse.json(
         { error: "Missing GEMINI_API_KEY environment variable." },
+        { status: 500 },
+      );
+    }
+
+    if (!xaiApiKey) {
+      return NextResponse.json(
+        { error: "Missing XAI_API_KEY environment variable." },
         { status: 500 },
       );
     }
@@ -157,24 +167,45 @@ export async function POST(request: Request) {
 
     if (chatMessages.length === 0) {
       return NextResponse.json(
-        { error: "No valid chat messages to send to Gemini." },
+        { error: "No valid chat messages to send to Grok." },
         { status: 400 },
       );
     }
 
-    const transcript = chatMessages
-      .map((message) => `${message.role === "user" ? "User" : "Assistant"}: ${message.content}`)
-      .join("\n\n");
-
-    const geminiStream = await gemini.models.generateContentStream({
-      model: CHAT_MODEL,
-      contents: `${systemPrompt}\n\nConversation:\n${transcript}\n\nAssistant:`,
-      config: {
-        maxOutputTokens: 1024,
+    const grokResponse = await fetch(GROK_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${xaiApiKey}`,
       },
+      body: JSON.stringify({
+        model: grokModel,
+        stream: true,
+        temperature: 0.2,
+        messages: [{ role: "system", content: systemPrompt }, ...chatMessages],
+      }),
     });
 
+    if (!grokResponse.ok) {
+      const errorText = await grokResponse.text();
+      return NextResponse.json(
+        {
+          error: `Grok API error (${grokResponse.status}): ${errorText}`,
+        },
+        { status: grokResponse.status },
+      );
+    }
+
+    if (!grokResponse.body) {
+      return NextResponse.json(
+        { error: "Grok response did not include a stream body." },
+        { status: 500 },
+      );
+    }
+    const grokBody = grokResponse.body;
+
     const encoder = new TextEncoder();
+    const decoder = new TextDecoder();
     const stream = new ReadableStream({
       async start(controller) {
         const sendTextDelta = (delta: string) => {
@@ -182,15 +213,47 @@ export async function POST(request: Request) {
         };
 
         try {
-          for await (const chunk of geminiStream) {
-            const textDelta = chunk.text ?? "";
-            if (textDelta.length > 0) {
-              sendTextDelta(textDelta);
+          const reader = grokBody.getReader();
+          let buffer = "";
+
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) {
+              break;
+            }
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+            buffer = lines.pop() ?? "";
+
+            for (const rawLine of lines) {
+              const line = rawLine.trim();
+              if (!line.startsWith("data:")) {
+                continue;
+              }
+
+              const payload = line.slice(5).trim();
+              if (!payload || payload === "[DONE]") {
+                continue;
+              }
+
+              try {
+                const parsed = JSON.parse(payload) as {
+                  choices?: Array<{ delta?: { content?: string } }>;
+                };
+                const textDelta = parsed.choices?.[0]?.delta?.content ?? "";
+                if (textDelta.length > 0) {
+                  sendTextDelta(textDelta);
+                }
+              } catch {
+                // Ignore malformed partial chunks and keep streaming.
+              }
             }
           }
+
           controller.close();
         } catch (streamError) {
-          console.error("Gemini stream failed:", streamError);
+          console.error("Grok stream failed:", streamError);
           controller.error(streamError);
         }
       },
