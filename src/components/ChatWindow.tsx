@@ -4,10 +4,37 @@ import { Bot, Send } from "lucide-react";
 import { useChat } from "@ai-sdk/react";
 import { TextStreamChatTransport } from "ai";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import type { Components } from "react-markdown";
 import ReactMarkdown from "react-markdown";
 
 type ChatWindowProps = {
   documentId: string;
+};
+
+const markdownComponents: Components = {
+  p: ({ children }) => <p className="mb-3 last:mb-0 leading-relaxed">{children}</p>,
+  ul: ({ children }) => <ul className="mb-3 list-disc pl-5 space-y-1 leading-relaxed">{children}</ul>,
+  ol: ({ children }) => <ol className="mb-3 list-decimal pl-5 space-y-1 leading-relaxed">{children}</ol>,
+  li: ({ children }) => <li className="pl-0.5">{children}</li>,
+  strong: ({ children }) => <strong className="font-semibold text-zinc-900">{children}</strong>,
+  code: ({ children }) => (
+    <code className="rounded bg-zinc-200/80 px-1.5 py-0.5 text-[0.9em] font-medium text-zinc-800">
+      {children}
+    </code>
+  ),
+  pre: ({ children }) => (
+    <pre className="mb-3 overflow-x-auto rounded-lg bg-zinc-200/80 p-3 text-sm leading-relaxed">
+      {children}
+    </pre>
+  ),
+  h1: ({ children }) => <h1 className="mb-2 mt-3 text-base font-semibold text-zinc-900 first:mt-0">{children}</h1>,
+  h2: ({ children }) => <h2 className="mb-2 mt-3 text-sm font-semibold text-zinc-900 first:mt-0">{children}</h2>,
+  h3: ({ children }) => <h3 className="mb-1 mt-2 text-sm font-semibold text-zinc-900 first:mt-0">{children}</h3>,
+  blockquote: ({ children }) => (
+    <blockquote className="border-l-2 border-zinc-300 pl-3 italic text-zinc-700">
+      {children}
+    </blockquote>
+  ),
 };
 
 export function ChatWindow({ documentId }: ChatWindowProps) {
@@ -42,8 +69,8 @@ export function ChatWindow({ documentId }: ChatWindowProps) {
   };
 
   return (
-    <div className="w-full rounded-xl border border-zinc-200 bg-white">
-      <div className="h-[450px] space-y-4 overflow-y-auto p-4">
+    <div className="w-full rounded-xl border border-zinc-200 bg-white shadow-sm">
+      <div className="h-[480px] space-y-5 overflow-y-auto p-4">
         {messages.length === 0 ? (
           <div className="flex h-full items-center justify-center text-sm text-zinc-500">
             Ask a question about your uploaded document.
@@ -65,23 +92,23 @@ export function ChatWindow({ documentId }: ChatWindowProps) {
                 className={`flex w-full ${isUser ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm ${
+                  className={`max-w-[88%] rounded-2xl text-[15px] ${
                     isUser
-                      ? "bg-blue-600 text-white"
-                      : "border border-zinc-200 bg-zinc-100 text-zinc-900"
+                      ? "bg-blue-600 px-4 py-2.5 text-white"
+                      : "border border-zinc-200 bg-zinc-50 px-4 py-3.5 text-zinc-800 shadow-sm"
                   }`}
                 >
                   {!isUser && (
-                    <div className="mb-2 flex items-center gap-2 text-zinc-600">
+                    <div className="mb-2.5 flex items-center gap-2 text-zinc-500">
                       <Bot className="h-4 w-4" />
-                      <span className="text-xs font-medium">Assistant</span>
+                      <span className="text-xs font-medium uppercase tracking-wide">Assistant</span>
                     </div>
                   )}
                   {isUser ? (
-                    <p className="whitespace-pre-wrap">{text}</p>
+                    <p className="whitespace-pre-wrap leading-relaxed">{text}</p>
                   ) : (
-                    <div className="prose prose-sm max-w-none prose-zinc">
-                      <ReactMarkdown>{text}</ReactMarkdown>
+                    <div className="min-w-0 text-[15px] leading-[1.6]">
+                      <ReactMarkdown components={markdownComponents}>{text}</ReactMarkdown>
                     </div>
                   )}
                 </div>
@@ -92,7 +119,7 @@ export function ChatWindow({ documentId }: ChatWindowProps) {
 
         {isLoading && (
           <div className="flex w-full justify-start">
-            <div className="max-w-[85%] rounded-2xl border border-zinc-200 bg-zinc-100 px-4 py-3 text-sm text-zinc-900">
+            <div className="max-w-[88%] rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3.5 shadow-sm">
               <div className="mb-2 flex items-center gap-2 text-zinc-600">
                 <Bot className="h-4 w-4" />
                 <span className="text-xs font-medium">Assistant</span>
