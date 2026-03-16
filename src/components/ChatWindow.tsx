@@ -2,7 +2,7 @@
 
 import { Bot, Send } from "lucide-react";
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport } from "ai";
+import { TextStreamChatTransport } from "ai";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 
@@ -16,7 +16,7 @@ export function ChatWindow({ documentId }: ChatWindowProps) {
 
   const transport = useMemo(
     () =>
-      new DefaultChatTransport({
+      new TextStreamChatTransport({
         api: "/api/chat",
         body: { documentId },
       }),
@@ -37,8 +37,8 @@ export function ChatWindow({ documentId }: ChatWindowProps) {
       return;
     }
 
-    await sendMessage({ text: trimmed });
     setInput("");
+    await sendMessage({ text: trimmed });
   };
 
   return (
@@ -51,8 +51,11 @@ export function ChatWindow({ documentId }: ChatWindowProps) {
         ) : (
           messages.map((message) => {
             const isUser = message.role === "user";
-            const text = message.parts
-              .filter((part) => part.type === "text")
+            const text = (message.parts ?? [])
+              .filter(
+                (part): part is { type: "text"; text: string } =>
+                  part.type === "text" && "text" in part && typeof part.text === "string",
+              )
               .map((part) => part.text)
               .join("");
 
@@ -85,6 +88,22 @@ export function ChatWindow({ documentId }: ChatWindowProps) {
               </div>
             );
           })
+        )}
+
+        {isLoading && (
+          <div className="flex w-full justify-start">
+            <div className="max-w-[85%] rounded-2xl border border-zinc-200 bg-zinc-100 px-4 py-3 text-sm text-zinc-900">
+              <div className="mb-2 flex items-center gap-2 text-zinc-600">
+                <Bot className="h-4 w-4" />
+                <span className="text-xs font-medium">Assistant</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="h-2 w-2 animate-pulse rounded-full bg-zinc-400" />
+                <span className="h-2 w-2 animate-pulse rounded-full bg-zinc-400 [animation-delay:120ms]" />
+                <span className="h-2 w-2 animate-pulse rounded-full bg-zinc-400 [animation-delay:240ms]" />
+              </div>
+            </div>
+          </div>
         )}
         <div ref={endRef} />
       </div>

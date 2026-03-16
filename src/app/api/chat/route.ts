@@ -14,7 +14,8 @@ const DEFAULT_GROQ_MODEL = "llama-3.1-8b-instant";
 
 type ChatMessage = {
   role: "user" | "assistant" | "system";
-  content: string | Array<{ type?: string; text?: string }>;
+  content?: string | Array<{ type?: string; text?: string }>;
+  parts?: Array<{ type?: string; text?: string }>;
 };
 
 type MatchChunkRow = {
@@ -23,12 +24,17 @@ type MatchChunkRow = {
   similarity: number;
 };
 
-function getMessageText(content: ChatMessage["content"]): string {
+function getMessageText(
+  content: ChatMessage["content"],
+  parts?: ChatMessage["parts"],
+): string {
   if (typeof content === "string") {
     return content;
   }
 
-  return content
+  const sourceParts = Array.isArray(content) ? content : Array.isArray(parts) ? parts : [];
+
+  return sourceParts
     .filter((part) => part.type === "text" && typeof part.text === "string")
     .map((part) => part.text ?? "")
     .join("\n")
@@ -84,7 +90,11 @@ export async function POST(request: Request) {
 
     const lastUserMessage = [...body.messages]
       .reverse()
-      .find((message) => message.role === "user" && getMessageText(message.content).length > 0);
+      .find(
+        (message) =>
+          message.role === "user" &&
+          getMessageText(message.content, message.parts).length > 0,
+      );
 
     if (!lastUserMessage) {
       return NextResponse.json(
@@ -93,7 +103,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const lastUserText = getMessageText(lastUserMessage.content);
+    const lastUserText = getMessageText(lastUserMessage.content, lastUserMessage.parts);
     const gemini = new GoogleGenAI({ apiKey: geminiApiKey });
     const embeddingResponse = await gemini.models.embedContent({
       model: EMBEDDING_MODEL,
@@ -161,7 +171,7 @@ export async function POST(request: Request) {
       )
       .map((message) => ({
         role: message.role,
-        content: getMessageText(message.content),
+        content: getMessageText(message.content, message.parts),
       }))
       .filter((message) => message.content.length > 0);
 
@@ -184,7 +194,7 @@ export async function POST(request: Request) {
     const stream = new ReadableStream({
       async start(controller) {
         const sendTextDelta = (delta: string) => {
-          controller.enqueue(encoder.encode(`0:${JSON.stringify(delta)}\n`));
+          controller.enqueue(encoder.encode(delta));
         };
 
         try {
@@ -206,7 +216,6 @@ export async function POST(request: Request) {
       headers: {
         "Content-Type": "text/plain; charset=utf-8",
         "Cache-Control": "no-cache, no-transform",
-        "x-vercel-ai-data-stream": "v1",
       },
     });
   } catch (error) {
