@@ -20,90 +20,111 @@ export default function Home() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-zinc-50">
-      <header className="border-b border-zinc-200 bg-white/80 backdrop-blur">
-        <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-4">
-          <div>
-            <div className="inline-flex items-center gap-2 rounded-full bg-zinc-900 px-3 py-1 text-xs font-medium text-zinc-50">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-              DocWise
+    <div className="flex h-full flex-col bg-zinc-950">
+      {/* Header: compact, closer to original style */}
+      <header className="shrink-0 border-b border-zinc-800 bg-zinc-950/95">
+        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-zinc-900">
+              <span className="text-sm font-semibold text-zinc-50">D</span>
             </div>
-            <h1 className="mt-3 text-xl font-semibold tracking-tight text-zinc-900 sm:text-2xl">
-              Chat with your PDFs
-            </h1>
-            <p className="mt-1 text-sm text-zinc-600">
-              Upload a document, then ask natural language questions about its
-              contents.
-            </p>
+            <div>
+              <h1 className="text-lg font-semibold tracking-tight text-zinc-50 sm:text-xl">
+                DocWise
+              </h1>
+              <p className="mt-0.5 text-xs text-zinc-400 sm:text-sm">
+                Upload any PDF and get grounded, AI-powered answers from that
+                document.
+              </p>
+            </div>
           </div>
         </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-6 sm:py-8">
+      {/* Main: full height when chatting, padded when uploading */}
+      <main
+        className={`mx-auto flex w-full max-w-5xl flex-1 flex-col min-h-0 px-4 sm:px-6 lg:px-8 ${
+          documentId ? "gap-0 py-3" : "gap-6 py-6 sm:py-8"
+        }`}
+      >
         {!documentId ? (
-          <section className="rounded-2xl border border-dashed border-zinc-200 bg-white/80 p-4 shadow-sm sm:p-6">
-            <h2 className="text-sm font-semibold text-zinc-800">
-              Upload a PDF
-            </h2>
-            <p className="mt-1 text-xs text-zinc-500">
-              We&apos;ll parse and index your file so you can ask questions
-              about it.
-            </p>
-            <div className="mt-4">
-              <FileUpload onUploadComplete={handleUploadComplete} />
-            </div>
-          </section>
-        ) : (
-          <section className="flex flex-wrap items-center gap-3 rounded-2xl border border-zinc-200 bg-white px-4 py-3 shadow-sm sm:px-5 sm:py-4">
-            <div className="flex min-w-0 flex-1 items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-zinc-100">
-                <FileText className="h-5 w-5 text-zinc-600" />
-              </div>
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-zinc-900">
-                  {documentName ?? "Document"}
-                </p>
-                <p className="text-xs text-zinc-500">Ready to chat</p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={handleUploadOther}
-              className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 shadow-sm transition hover:border-zinc-300 hover:bg-zinc-50"
-            >
-              <Upload className="h-4 w-4" />
-              Upload other doc
-            </button>
-          </section>
-        )}
-
-        <section className="rounded-2xl border border-zinc-200 bg-white/90 p-4 shadow-sm sm:p-6">
-          <div className="mb-3 flex items-center justify-between gap-2">
-            <div>
-              <h2 className="text-sm font-semibold text-zinc-800">
-                Ask questions
+          <>
+            {/* Upload: generous space and padding */}
+            <section className="shrink-0 rounded-2xl border border-zinc-800 bg-zinc-900/50 p-6 sm:p-8">
+              <h2 className="text-base font-semibold text-zinc-100">
+                Upload a PDF
               </h2>
-              <p className="mt-1 text-xs text-zinc-500">
-                {documentId
-                  ? "Chat about your document below."
-                  : "Upload a PDF above to start."}
+              <p className="mt-1.5 text-sm text-zinc-500">
+                We&apos;ll parse and index your file so you can ask questions
+                about it.
               </p>
-            </div>
-          </div>
+              <div className="mt-6">
+                <FileUpload onUploadComplete={handleUploadComplete} />
+              </div>
+            </section>
 
-          {documentId ? (
-            <ChatWindow key={documentId} documentId={documentId} />
-          ) : (
-            <div className="flex h-40 items-center justify-center rounded-xl border border-dashed border-zinc-200 bg-zinc-50 text-xs text-zinc-500">
-              Upload a PDF to start chatting about it.
-            </div>
-          )}
-        </section>
+            {/* Placeholder: large, friendly empty state */}
+            <section className="flex flex-1 flex-col min-h-[320px] rounded-2xl border border-dashed border-zinc-700 bg-zinc-900/30">
+              <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 py-12 text-center">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-zinc-800">
+                  <FileText className="h-7 w-7 text-zinc-500" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-zinc-300">
+                    No document yet
+                  </p>
+                  <p className="mt-1 text-sm text-zinc-500 max-w-sm">
+                    Upload a PDF above to start. You&apos;ll then be able to ask
+                    questions and get answers from your document.
+                  </p>
+                </div>
+              </div>
+            </section>
+          </>
+        ) : (
+          <div className="flex flex-1 min-h-0 flex-col gap-3 sm:gap-4">
+            {/* Document info row above chat so it doesn't feel cramped */}
+            <section className="flex items-center justify-between gap-3 rounded-2xl border border-zinc-800 bg-zinc-900/70 px-4 py-3 sm:px-5">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-zinc-800 border border-zinc-700">
+                  <FileText className="h-4 w-4 text-zinc-400" />
+                </div>
+                <div className="min-w-0">
+                  <p
+                    className="truncate text-sm font-medium text-zinc-100"
+                    title={documentName ?? undefined}
+                  >
+                    {documentName ?? "Document"}
+                  </p>
+                  <p className="text-xs text-zinc-500">
+                    Ready to chat · Upload a different file any time.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleUploadOther}
+                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-2 text-xs font-medium text-zinc-200 transition hover:bg-zinc-700 hover:border-zinc-600"
+              >
+                <Upload className="h-3.5 w-3.5 shrink-0" />
+                <span>Upload other doc</span>
+              </button>
+            </section>
+
+            {/* Chat: fills remaining space, now much wider */}
+            <section className="flex min-h-[360px] flex-1 flex-col sm:min-h-0">
+              <div className="flex min-h-0 flex-1 flex-col">
+                <ChatWindow key={documentId} documentId={documentId} />
+              </div>
+            </section>
+          </div>
+        )}
       </main>
 
-      <footer className="border-t border-zinc-200 bg-white/80">
-        <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3 text-xs text-zinc-500">
-          <span>Built with Next.js, Groq, Gemini & Supabase.</span>
+      {/* Footer: minimal */}
+      <footer className="shrink-0 border-t border-zinc-800 bg-zinc-900/80">
+        <div className="mx-auto flex max-w-6xl items-center justify-center px-4 py-3 text-xs text-zinc-500 sm:px-6 lg:px-8">
+          Built with Next.js, Groq, Gemini & Supabase
         </div>
       </footer>
     </div>
