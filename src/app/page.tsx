@@ -26,13 +26,14 @@ export default function Home() {
           <div>
             <div className="inline-flex items-center gap-2 rounded-full bg-zinc-900 px-3 py-1 text-xs font-medium text-zinc-50">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-              DocChat
+              DocWise
             </div>
             <h1 className="mt-3 text-xl font-semibold tracking-tight text-zinc-900 sm:text-2xl">
               Chat with your PDFs
             </h1>
             <p className="mt-1 text-sm text-zinc-600">
-              Upload a document, then ask natural language questions about its contents.
+              Upload a document, then ask natural language questions about its
+              contents.
             </p>
           </div>
         </div>
@@ -41,9 +42,12 @@ export default function Home() {
       <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-6 sm:py-8">
         {!documentId ? (
           <section className="rounded-2xl border border-dashed border-zinc-200 bg-white/80 p-4 shadow-sm sm:p-6">
-            <h2 className="text-sm font-semibold text-zinc-800">Upload a PDF</h2>
+            <h2 className="text-sm font-semibold text-zinc-800">
+              Upload a PDF
+            </h2>
             <p className="mt-1 text-xs text-zinc-500">
-              We&apos;ll parse and index your file so you can ask questions about it.
+              We&apos;ll parse and index your file so you can ask questions
+              about it.
             </p>
             <div className="mt-4">
               <FileUpload onUploadComplete={handleUploadComplete} />
@@ -76,7 +80,9 @@ export default function Home() {
         <section className="rounded-2xl border border-zinc-200 bg-white/90 p-4 shadow-sm sm:p-6">
           <div className="mb-3 flex items-center justify-between gap-2">
             <div>
-              <h2 className="text-sm font-semibold text-zinc-800">Ask questions</h2>
+              <h2 className="text-sm font-semibold text-zinc-800">
+                Ask questions
+              </h2>
               <p className="mt-1 text-xs text-zinc-500">
                 {documentId
                   ? "Chat about your document below."

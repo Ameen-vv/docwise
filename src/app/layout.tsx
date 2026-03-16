@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "DocChat",
+  title: "DocWise",
   description: "Upload a PDF and chat with your document.",
 };
 
