@@ -1,0 +1,16 @@
+name: Supabase Keep Alive
+
+on:
+  schedule:
+    - cron: "0 3 */2 * *"
+  workflow_dispatch:
+
+jobs:
+  ping-mock-api:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call keep-alive mock API
+        run: |
+          curl --fail --silent --show-error --retry 3 \
+            --max-time 30 \
+            "https://docwise-delta.vercel.app/api/keep-alive"
