@@ -15,6 +15,10 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "DocWise",
   description: "Upload a PDF and chat with your document.",
+  icons: {
+    icon: "/docwise-icon.svg",
+    apple: "/docwise-icon.svg",
+  },
 };
 
 export default function RootLayout({

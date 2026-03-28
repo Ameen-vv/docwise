@@ -1,6 +1,7 @@
 'use client';
 
 import { ChatWindow } from '@/components/ChatWindow';
+import { DocwiseIcon } from '@/components/DocwiseIcon';
 import { FileUpload } from '@/components/FileUpload';
 import { FileText, Upload } from 'lucide-react';
 import { useState } from 'react';
@@ -25,9 +26,7 @@ export default function Home() {
       <header className='shrink-0 border-b border-zinc-800 bg-zinc-950/95'>
         <div className='mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8'>
           <div className='flex items-center gap-3'>
-            <div className='flex h-9 w-9 items-center justify-center rounded-lg bg-zinc-900'>
-              <span className='text-sm font-semibold text-zinc-50'>D</span>
-            </div>
+            <DocwiseIcon className='h-9 w-9 shrink-0 rounded-lg' />
             <div>
               <h1 className='text-lg font-semibold tracking-tight text-zinc-50 sm:text-xl'>
                 DocWise

@@ -1,0 +1,25 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="512" height="512" rx="120" fill="#0f172a"/>
+
+  <!-- Document body -->
+  <rect x="100" y="60" width="260" height="310" rx="20" fill="#1e40af"/>
+
+  <!-- Folded corner -->
+  <path d="M295 60 L360 125 L295 125 Z" fill="#0f172a"/>
+  <path d="M295 60 L360 125 L295 125 Z" fill="none" stroke="#3b82f6" stroke-width="3"/>
+
+  <!-- Document lines -->
+  <line x1="140" y1="175" x2="320" y2="175" stroke="white" stroke-width="10" stroke-linecap="round" opacity="0.7"/>
+  <line x1="140" y1="215" x2="320" y2="215" stroke="white" stroke-width="10" stroke-linecap="round" opacity="0.7"/>
+  <line x1="140" y1="255" x2="240" y2="255" stroke="white" stroke-width="10" stroke-linecap="round" opacity="0.7"/>
+
+  <!-- AI chat bubble -->
+  <rect x="120" y="300" width="240" height="100" rx="28" fill="#3b82f6"/>
+  <path d="M165 400 L145 440 L200 400 Z" fill="#3b82f6"/>
+
+  <!-- Chat typing dots -->
+  <circle cx="196" cy="350" r="14" fill="white"/>
+  <circle cx="256" cy="350" r="14" fill="white"/>
+  <circle cx="316" cy="350" r="14" fill="white"/>
+</svg>
